@@ -1,0 +1,15 @@
+pymavlink
+rplidar-roboticia
+flask
+flask-socketio
+python-socketio
+firebase-admin
+paho-mqtt
+pyserial
+python-urg
+numpy
+opencv-python-headless
+depthai
+pandas
+requests
+cryptography
