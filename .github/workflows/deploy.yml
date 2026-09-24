@@ -1,0 +1,94 @@
+name: Robot Platform CI/CD
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  # 1. Build Docker
+  build-docker:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: ghcr.io/${{ github.repository }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # 2. Deploy to Raspberry Pi
+  deploy-pi:
+    needs: build-docker
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy to Raspberry Pi via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PI_HOST }}
+          username: ${{ secrets.PI_USER }}
+          key: ${{ secrets.PI_SSH_KEY }}
+          port: ${{ secrets.PI_PORT }}
+          script_stop: true
+          script: |
+            echo "🛑 Stopping services..."
+            sudo systemctl stop robot-navigation robot-web || true
+            
+            echo "🐳 Stopping Docker containers..."
+            docker stop robot-platform || true
+            docker rm robot-platform || true
+            
+            echo "📦 Pulling latest Docker image..."
+            docker pull ghcr.io/${{ github.repository }}:latest || true
+            
+            echo "🚀 Starting new container..."
+            docker run -d \
+              --name robot-platform \
+              --restart unless-stopped \
+              --network host \
+              --privileged \
+              --device /dev/ttyUSB0 \
+              --device /dev/ttyS0 \
+              -v /home/${{ secrets.PI_USER }}/robot_app/config.json:/home/robot/app/config.json:ro \
+              -v /home/${{ secrets.PI_USER }}/robot_app/serviceAccountKey.json:/home/robot/app/serviceAccountKey.json:ro \
+              -v robot-logs:/var/log/robot \
+              -v robot-data:/home/robot/app/logs \
+              -e TZ=Europe/Kiev \
+              ghcr.io/${{ github.repository }}:latest || true
+            
+            echo "✅ Starting services..."
+            sudo systemctl daemon-reload
+            sudo systemctl start robot-navigation robot-web || true
+            
+            echo "📊 Checking status..."
+            sudo systemctl status robot-navigation --no-pager || true
+            sudo systemctl status robot-web --no-pager || true
+            
+            echo "🧹 Cleaning up old images..."
+            docker image prune -f || true
