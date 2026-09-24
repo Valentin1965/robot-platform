@@ -35,7 +35,7 @@ jobs:
           file: Dockerfile
           platforms: linux/arm64
           push: true
-          tags: ghcr.io/${{ github.repository }}:latest
+          tags: ghcr.io/valentin1965/robot-platform:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -65,7 +65,7 @@ jobs:
             docker rm robot-platform || true
             
             echo "📦 Pulling latest Docker image..."
-            docker pull ghcr.io/${{ github.repository }}:latest || true
+            docker pull ghcr.io/valentin1965/robot-platform:latest || true
             
             echo "🚀 Starting new container..."
             docker run -d \
@@ -80,7 +80,7 @@ jobs:
               -v robot-logs:/var/log/robot \
               -v robot-data:/home/robot/app/logs \
               -e TZ=Europe/Kiev \
-              ghcr.io/${{ github.repository }}:latest || true
+              ghcr.io/valentin1965/robot-platform:latest || true
             
             echo "✅ Starting services..."
             sudo systemctl daemon-reload
