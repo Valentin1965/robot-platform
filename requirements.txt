@@ -6,7 +6,7 @@ python-socketio
 firebase-admin
 paho-mqtt
 pyserial
-python-urg
+# python-urg  # Недоступний для ARM64
 numpy
 opencv-python-headless
 depthai
