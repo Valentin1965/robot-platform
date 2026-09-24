@@ -15,7 +15,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY platform/ ./platform/
 COPY sim_platform/ ./sim_platform/
-COPY sim_visualization/ ./sim_visualization/
 COPY docs/ ./docs/
 
 # Set environment variables
