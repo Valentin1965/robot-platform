@@ -13,10 +13,6 @@ on:
     branches:
       - main
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
 jobs:
   # =============================================================================
   # 1. Lint & Tests
@@ -81,7 +77,7 @@ jobs:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
@@ -89,7 +85,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=latest
             type=sha,prefix=,format=long
@@ -101,7 +97,7 @@ jobs:
           file: Dockerfile
           platforms: linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ghcr.io/${{ github.repository }}:latest
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -135,7 +131,7 @@ jobs:
             docker rm robot-platform || true
             
             echo "📦 Pulling latest Docker image..."
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest || true
+            docker pull ghcr.io/${{ github.repository }}:latest || true
             
             echo "🚀 Starting new container..."
             docker run -d \
@@ -150,7 +146,7 @@ jobs:
               -v robot-logs:/var/log/robot \
               -v robot-data:/home/robot/app/logs \
               -e TZ=Europe/Kiev \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest || true
+              ghcr.io/${{ github.repository }}:latest || true
             
             echo "✅ Starting services..."
             sudo systemctl daemon-reload
@@ -187,4 +183,4 @@ jobs:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
             
             ${{ job.status == 'success' && '✅ Deployment successful!' || '❌ Deployment failed!' }}
-          format: markdown 
+          format: markdown
